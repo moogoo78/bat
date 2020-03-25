@@ -54,15 +54,16 @@ tt = TaxonTree('res/table_specieslist-200313.csv', rank_column_map, rank_list, i
 #tt.info()
 #a = tt.make_tree([0, 20])
 
-#a = tt.make_tree()
+a = tt.make_tree()
 #tt.save('dist/taicol-0313-flat.pickle')
 
-a = tt.read('dist/taicol-0313-flat.pickle')
+#a = tt.read('dist/taicol-0313-flat.pickle')
 
 #tt.check_duplicate('family')
 #tt.check_duplicate('phylum')
 
 # to django fixture
+
 import json
 pk = 0
 model = 'data.taxon'
@@ -85,12 +86,30 @@ for rank in a:
             }
         }
         #print (d)
-        rank_parent_data[rank][key] = pk
+        if rank not in ['species']:
+            # 1) 理論上科以上沒有重複
+            # 2) 這邊列到屬, 因為species 不會變成別人的 parent
+            # 3) rank_parent_data  "剛好" 不會錯, 因為預設沒有同屬名但 科名不同的!!
+            rank_parent_data[rank][taxon_data['s']] = pk
+            #print (rank, key, taxon_data)
+            #rank_parent_data[rank][key]
 
         parent_key = taxon_data.get('p', '')
         if parent_key:
             parent_rank = tt.rank_list[tt.rank_list.index(rank)-1]
-            #print ('parent',key, parent_rank, parent_key)
+            # check
+            #if rank == 'class' and key == 'Amphibia|Chordata':
+            #    print ('parent',key, parent_rank, parent_key, '--------')
+            #    print (rank_parent_data[parent_rank][parent_key])
+            #if rank == 'genus' and taxon_data['s'] == 'Naja':
+            #    print ('parent',key, parent_rank, parent_key, '--------')
+            #    print (rank_parent_data[parent_rank][parent_key])
+            #if rank == 'genus' and taxon_data['s'] == 'Lichen':
+            #    print ('parent',key, parent_rank, parent_key, '--------')
+            #    print (rank_parent_data[parent_rank][parent_key])
+            #if rank == 'species' and taxon_data['s'] == 'agilis':
+            #    print ('parent',key, parent_rank, parent_key, '--------')
+            #    print (rank_parent_data[parent_rank][parent_key])
             if rank_parent_data[parent_rank].get(parent_key, ''):
                 d['fields']['parent_id'] = rank_parent_data[parent_rank][parent_key]
 
@@ -101,7 +120,7 @@ for rank in a:
             d['fields']['verbose'] = taxon_data['a']
         data.append(d)
 print (pk)
-
+print (rank_parent_data['genus']['Polyporus'])
 f = open('dist/taibif-data-taxon.json', 'w')
 f.write(json.dumps(data))
 f.close()
